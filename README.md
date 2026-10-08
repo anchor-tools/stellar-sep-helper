@@ -2,7 +2,7 @@
 
 Small TypeScript utilities for **SEP-1 Stellar TOML** discovery, parsing, and baseline validation. This project is intentionally focused: it does not currently implement SEP-10 authentication, SEP-12 customer information, SEP-24 transfers, or SEP-31 payments.
 
-[Read the documentation](https://anchor-tools.github.io/stellar-sep-helper/) · [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/anchor-tools/stellar-sep-helper/issues/new)
+[Read the documentation](https://stellar-sep-helper-docs-sigma.vercel.app/) · [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/anchor-tools/stellar-sep-helper/issues/new)
 
 ## What it does
 
