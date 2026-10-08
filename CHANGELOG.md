@@ -1,17 +1,21 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+Notable project changes are recorded here.
 
-## [Unreleased]
-
-### Added
-- Initial project setup
-- SEP-10 (Web Authentication) helpers
-- SEP-12 (TOML) helpers
-- Basic test suite
-- Documentation (README, CONTRIBUTING, LICENSE)
-
-## [1.0.0] - 2026-10-08
+## Unreleased
 
 ### Added
-- Initial release of Stellar SEP Helper library
+
+- Working SEP-1 Stellar TOML discovery, parsing, and baseline validation.
+- Unit tests for fetch behavior, TOML parsing, and validation.
+- Project documentation site and continuous integration workflows.
+
+### Changed
+
+- Corrected package entry points to target the compiled `dist` output.
+- Documented the current support boundary instead of advertising unimplemented SEP helpers.
+
+### Removed
+
+- Placeholder SEP-10 and purported SEP-12 implementations.
+- Exports for SEP-24 and SEP-31 modules that did not exist.

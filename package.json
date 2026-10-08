@@ -1,18 +1,38 @@
 {
   "name": "stellar-sep-helper",
-  "version": "1.0.0",
-  "description": "Utilities to help implement various Stellar Ecosystem Proposals (SEPs)",
-  "main": "index.js",
+  "version": "0.1.0",
+  "description": "TypeScript utilities for discovering, parsing, and validating Stellar SEP-1 stellar.toml files.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "jest",
-    "build": "tsc",
+    "test": "jest --runInBand",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
-  "keywords": "[\"stellar\", \"sep\", \"stellar-ecosystem-proposals\", \"blockchain\", \"cryptocurrency\"]",
-  "author": "Your Name <your.email@example.com>",
+  "keywords": [
+    "stellar",
+    "sep-1",
+    "stellar-toml",
+    "toml",
+    "stellar-development"
+  ],
   "license": "MIT",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@iarna/toml": "^2.2.5"
+  },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.4",

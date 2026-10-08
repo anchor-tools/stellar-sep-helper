@@ -1,43 +1,37 @@
-# Contributing to Stellar SEP Helper
+# Contributing
 
-Thank you for considering contributing to the Stellar SEP Helper library! We welcome contributions from the community.
+Thank you for considering a contribution to Stellar SEP Helper.
 
-## How to Contribute
+## Before you start
 
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Ensure your code follows the existing style
-5. Add tests for any new functionality
-6. Run the test suite to ensure everything passes
-7. Commit your changes (`git commit -m 'Add amazing feature'`)
-8. Push to the branch (`git push origin feature/amazing-feature`)
-9. Open a Pull Request
+Open an [issue](https://github.com/anchor-tools/stellar-sep-helper/issues) to discuss substantial changes or new SEP support. Protocol work should identify the relevant SEP and section so the behavior can be reviewed against its source.
 
-## Development Setup
+## Development
 
-```bash
-# Install dependencies
-npm install
+Requirements: Node.js 22 or newer.
 
-# Build the project
-npm run build
-
-# Run tests
+```sh
+npm ci
 npm test
-
-# Development mode (watch for changes)
-npm run dev
+npm run typecheck
+npm run build
 ```
 
-## Code Style
+## Pull requests
 
-Please follow the existing code style in the project. We use TypeScript with strict mode enabled.
+1. Fork the repository and create a focused branch.
+2. Make the change and add or update tests for behavior changes.
+3. Run all four commands above.
+4. Open a pull request describing the motivation, implementation, and relevant SEP sections.
 
-## Reporting Issues
+Keep changes focused, avoid claiming SEP compliance beyond what is implemented and tested, and surface errors rather than substituting placeholder results.
 
-If you find a bug or have a feature request, please open an issue on the GitHub repository.
+## Reporting issues
+
+For bugs and feature requests, [open an issue](https://github.com/anchor-tools/stellar-sep-helper/issues). Include a minimal reproduction for bugs and identify the applicable SEP section for protocol questions.
+
+For security-sensitive reports, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-By contributing to this project, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the MIT License.
