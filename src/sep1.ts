@@ -312,6 +312,7 @@ function validateEndpoints(record: Sep1Record, report: Reporter): void {
     if (value === undefined) continue;
 
     if (typeof value !== 'string' || !isHttpsUrl(value)) {
+      // Never include the value itself: it may embed credentials.
       report('error', 'endpoint.https', field, `${field} must be a valid HTTPS URL`);
     }
   }
@@ -816,8 +817,30 @@ function isIntegerInRange(value: unknown, min: number, max: number): boolean {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
 
+/**
+ * Check a value is an absolute URL with the expected protocol.
+ */
+function parseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check an endpoint is an absolute HTTPS URL with a hostname and no embedded
+ * credentials. Paths, query strings, fragments, and ports are allowed.
+ */
 function isHttpsUrl(value: string): boolean {
-  return isUrlWithProtocol(value, 'https:');
+  const url = parseUrl(value);
+  return (
+    url !== null &&
+    url.protocol === 'https:' &&
+    url.hostname !== '' &&
+    url.username === '' &&
+    url.password === ''
+  );
 }
 
 function isHttpUrl(value: string): boolean {
@@ -825,11 +848,8 @@ function isHttpUrl(value: string): boolean {
 }
 
 function isUrlWithProtocol(value: string, protocol: string): boolean {
-  try {
-    return new URL(value).protocol === protocol;
-  } catch {
-    return false;
-  }
+  const url = parseUrl(value);
+  return url !== null && url.protocol === protocol;
 }
 
 async function readLimitedText(response: Response): Promise<string> {

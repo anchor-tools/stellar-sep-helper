@@ -132,6 +132,55 @@ describe('SEP-1 Stellar TOML helpers', () => {
       expect(result.errors).toContain('WEB_AUTH_ENDPOINT must be a valid HTTPS URL');
     });
 
+    it('accepts HTTPS endpoints with paths, query strings, ports, and fragments', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        TRANSFER_SERVER: 'https://anchor.example:8443/transfer/v1?mode=strict#top',
+        FEDERATION_SERVER: 'https://fed.example/federation'
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('rejects endpoint URLs with embedded credentials', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        TRANSFER_SERVER: 'https://user:secret@anchor.example/transfer',
+        WEB_AUTH_ENDPOINT: 'https://user@anchor.example/auth'
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('TRANSFER_SERVER must be a valid HTTPS URL');
+      expect(result.errors).toContain('WEB_AUTH_ENDPOINT must be a valid HTTPS URL');
+    });
+
+    it('rejects malformed and non-string endpoint values', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        AUTH_SERVER: 'not-a-url',
+        KYC_SERVER: 'ftp://anchor.example/kyc',
+        DIRECT_PAYMENT_SERVER: 42
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('AUTH_SERVER must be a valid HTTPS URL');
+      expect(result.errors).toContain('KYC_SERVER must be a valid HTTPS URL');
+      expect(result.errors).toContain('DIRECT_PAYMENT_SERVER must be a valid HTTPS URL');
+    });
+
+    it('does not echo rejected endpoint values in errors', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        TRANSFER_SERVER: 'https://user:topsecret@anchor.example/transfer'
+      });
+
+      const output = JSON.stringify(result.issues);
+      expect(output).not.toContain('topsecret');
+      expect(output).not.toContain('user');
+      expect(output).not.toContain('anchor.example/transfer');
+    });
+
     it('checks optional documentation table field types', () => {
       const result = validateStellarToml({
         VERSION: '2.7.0',
