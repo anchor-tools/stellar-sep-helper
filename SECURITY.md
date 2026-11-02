@@ -42,7 +42,7 @@ The scanner reads **added lines only**, so an existing pattern in the codebase d
 | `ci-automation-change` | review | Changes to workflows, Actions, Dependabot, or `CODEOWNERS`. |
 | `scanner-change` | review | Changes to the scanner itself. |
 
-`review` findings block the job until a maintainer reads the diff and applies the **`security-approved`** label to the pull request. Every other error requires a code change, not a label.
+`review` findings block the job until a maintainer reads the diff and applies the **`security-approved`** label to the pull request. Adding the label re-runs the scan, so no manual re-run is needed. Every other error requires a code change, not a label.
 
 Run it locally:
 
@@ -58,27 +58,23 @@ These are heuristics. They can produce false positives and will miss novel attac
 
 CI runs contributor code (tests and builds) with a read-only token and no repository secrets. Do not add secrets to workflows that run on `pull_request`; use `pull_request_target` never, and if a secret is truly required, gate it behind an environment with required reviewers.
 
-## Recommended repository settings
+## Repository settings
 
-These settings live in GitHub, not in the repository, and must be applied by an admin:
+These settings live in GitHub, not in the repository. The following are configured on this public repository:
 
-1. **Settings → Code security:** enable Dependabot alerts, secret scanning, push protection, and private vulnerability reporting. Keep CodeQL on the workflow in this repository rather than default setup, so the query suite is pinned in code.
-2. **Settings → Branches → `main`:** require a pull request before merging, require the checks `Build and test (22)`, `Build and test (24)`, `Contributor code scan`, `Analyze JavaScript and TypeScript`, and `Review dependency changes`, and block force pushes. Leave "Do not allow bypassing the above settings" off unless you want the rules applied to admins too.
+- Dependabot alerts and Dependabot security updates are enabled, and `.github/dependabot.yml` opens grouped weekly version updates for npm and GitHub Actions.
+- Secret scanning and push protection are enabled, so a push containing a recognized token is rejected before it reaches the remote. Non-provider secret patterns and validity checks are not enabled by the API; turn them on in **Settings → Code security** if you want them.
+- `main` is protected: merges require the checks `Build and test (22)`, `Build and test (24)`, `Contributor code scan`, `Analyze JavaScript and TypeScript`, and `Review dependency changes`, and force pushes and branch deletion are blocked. Admins can bypass, so run your own work through a pull request when you want the gate applied to it. Review approvals are not required yet, so a solo maintainer is not locked out.
+
+Reproduce the branch protection with:
 
 ```sh
-gh api -X PUT repos/anchor-tools/stellar-sep-helper/branches/main/protection \
-  -f 'required_status_checks[strict]=true' \
-  -f 'required_status_checks[contexts][]=Build and test (22)' \
-  -f 'required_status_checks[contexts][]=Build and test (24)' \
-  -f 'required_status_checks[contexts][]=Contributor code scan' \
-  -f 'required_status_checks[contexts][]=Analyze JavaScript and TypeScript' \
-  -f 'required_status_checks[contexts][]=Review dependency changes' \
-  -f 'enforce_admins=false' \
-  -f 'required_pull_request_reviews[required_approving_review_count]=1' \
-  -f 'restrictions=null'
+gh api -X PUT repos/anchor-tools/stellar-sep-helper/branches/main/protection --input - <<'JSON'
+{"required_status_checks":{"strict":true,"contexts":["Build and test (22)","Build and test (24)","Contributor code scan","Analyze JavaScript and TypeScript","Review dependency changes"]},"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
+JSON
 ```
 
-3. **Settings → General:** disable force pushes and limit who can push to `main`. Require two-factor authentication for organization members.
+Still manual, because they are account or organization settings: require two-factor authentication for organization members, enable private vulnerability reporting in **Settings → Code security**, and add required reviewers once there is a second maintainer.
 
 ## If the scan flags a pull request
 
