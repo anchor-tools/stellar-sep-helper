@@ -1,17 +1,24 @@
 # Stellar SEP Helper
 
-Small TypeScript utilities for **SEP-1 Stellar TOML** discovery, parsing, and baseline validation. This project is intentionally focused: it does not currently implement SEP-10 authentication, SEP-12 customer information, SEP-24 transfers, or SEP-31 payments.
+TypeScript utilities and a CLI for **SEP-1 Stellar TOML** discovery, parsing, and validation.
 
-[Read the documentation](https://stellar-sep-helper-docs-sigma.vercel.app/) · [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/anchor-tools/stellar-sep-helper/issues/new)
+[Documentation](https://stellar-sep-helper-docs-sigma.vercel.app/) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/anchor-tools/stellar-sep-helper/issues/new)
+
+## Scope
+
+This package covers SEP-1 today: fetching, parsing, and offline validation of `stellar.toml`. It does not implement SEP-10 authentication, SEP-12 customer information, SEP-24 transfers, or SEP-31 payments; those are tracked in the [roadmap](ROADMAP.md) and are not advertised as done.
+
+Validation is a baseline conformance check, not an audit. It cannot prove that a domain controls its `stellar.toml`, that an endpoint is reachable, or that a listed service is safe to use.
 
 ## What it does
 
-- Fetches `https://<domain>/.well-known/stellar.toml` over HTTPS.
-- Parses TOML into a JavaScript record.
-- Checks the SEP-1 version field, common HTTPS endpoint fields, and optional documentation field types.
-- Enforces SEP-1's 100 KiB maximum file size before parsing.
-
-The validator is a useful sanity check, **not** a complete SEP-1 conformance validator. Consult the [SEP-1 specification](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0001.md) when publishing or consuming Stellar TOML.
+- Fetches `https://<domain>/.well-known/stellar.toml` over HTTPS, with an optional request timeout.
+- Enforces SEP-1's 100 KiB maximum file size while streaming the response, before parsing.
+- Parses TOML into a typed record and rejects non-table roots.
+- Validates `VERSION`, HTTPS endpoint fields, `SIGNING_KEY`, `ACCOUNTS`/`PRINCIPALS`, `[DOCUMENTATION]`, `[[CURRENCIES]]`, and `[[VALIDATORS]]`.
+- Verifies Stellar account IDs with a built-in StrKey checksum check (`G...` and `M...`), with no extra dependencies.
+- Returns **structured issues** (severity, stable code, field path, message), so tooling can filter and report them.
+- Ships a CLI for one-off checks and CI, including `--json` output and local-file validation.
 
 ## Requirements
 
@@ -20,31 +27,102 @@ The validator is a useful sanity check, **not** a complete SEP-1 conformance val
 
 ## Install
 
+The package is not published to the npm registry yet; install it from GitHub:
+
 ```sh
 npm install github:anchor-tools/stellar-sep-helper
 ```
 
-The project is not currently published to the npm registry, so install it from GitHub as shown above.
+## CLI
+
+```sh
+npx stellar-sep-helper example.com
+npx stellar-sep-helper example.com anchor.example --json
+npx stellar-sep-helper --file ./stellar.toml --strict
+```
+
+```
+example.com (https://example.com/.well-known/stellar.toml)
+  VERSION: 2.7.0
+  Result:  invalid - 1 error, 1 warning
+
+  ERROR    KYC_SERVER        KYC_SERVER must be a valid HTTPS URL
+  WARNING  CURRENCIES[0].status  CURRENCIES[0].status should be one of live, dead, test
+```
+
+Options:
+
+| Flag | Description |
+| --- | --- |
+| `-f, --file <path>` | Validate a local TOML file instead of fetching a domain |
+| `--json` | Print one JSON document per target to stdout |
+| `--timeout <ms>` | Request timeout in milliseconds (default `10000`) |
+| `--strict` | Exit non-zero when a document has warnings |
+| `-h, --help` | Show usage |
+
+Exit codes: `0` all valid, `1` invalid or failed fetch/parse, `2` bad command line.
+
+`--json` emits one object per target:
+
+```json
+{
+  "label": "example.com",
+  "source": "https://example.com/.well-known/stellar.toml",
+  "valid": false,
+  "errors": ["KYC_SERVER must be a valid HTTPS URL"],
+  "warnings": [],
+  "issues": [
+    { "severity": "error", "code": "endpoint.https", "path": "KYC_SERVER", "message": "KYC_SERVER must be a valid HTTPS URL" }
+  ]
+}
+```
 
 ## Quick start
 
 ```ts
-import {
-  fetchStellarToml,
-  validateStellarToml
-} from 'stellar-sep-helper';
+import { fetchStellarToml, validateStellarToml } from 'stellar-sep-helper';
 
-const stellarToml = await fetchStellarToml({ domain: 'example.com' });
+const stellarToml = await fetchStellarToml({ domain: 'example.com', timeoutMs: 5000 });
 const result = validateStellarToml(stellarToml);
 
 if (!result.valid) {
-  console.error(result.errors);
+  for (const issue of result.issues) {
+    console.error(`${issue.path}: ${issue.message}`);
+  }
 }
 ```
 
 `fetchStellarToml` uses Node's built-in `fetch` by default. Supply a `fetcher` option to provide a custom implementation (for example, in tests). Fetch and TOML parse failures reject with an error; HTTP responses outside the success range are not treated as valid data.
 
-Use `parseStellarToml(source)` to parse TOML text without making a network request.
+Use `parseStellarToml(source)` to parse TOML text without a network request, `getStellarTomlUrl(domain)` to build the well-known URL, and the `isEd25519PublicKey` / `isMuxedAccountId` / `isStellarAccountId` helpers for StrKey checks.
+
+## API
+
+| Export | Description |
+| --- | --- |
+| `fetchStellarToml(options)` | Fetch `/.well-known/stellar.toml` and return a parsed `Sep1Record`. Rejects on invalid input, HTTP errors, oversize content, timeouts, or malformed TOML. |
+| `parseStellarToml(source)` | Parse TOML text without network access. Throws on malformed input or when the 100 KiB limit is exceeded. |
+| `validateStellarToml(record)` | Return `{ valid, errors, warnings, issues }`. `errors` block validity; `warnings` flag suspicious but parseable content. |
+| `getStellarTomlUrl(domain)` | Build `https://<domain>/.well-known/stellar.toml`, rejecting paths, credentials, query strings, and non-HTTPS schemes. |
+| `formatReport(report)` | Render a validation result as the CLI's human-readable report. |
+| `isEd25519PublicKey`, `isMuxedAccountId`, `isStellarAccountId` | StrKey checks used by the validator and available for your own input validation. |
+
+Types: `Sep1Record`, `Sep1Toml`, `Sep1Documentation`, `Sep1Currency`, `Sep1Issue`, `Sep1ValidationResult`, `Sep1Options`, `StellarTomlReport`.
+
+## Validation coverage
+
+| Area | Checked | Severity |
+| --- | --- | --- |
+| `VERSION` | Present, non-empty, semver-shaped | error / warning |
+| Endpoint fields | `FEDERATION_SERVER`, `AUTH_SERVER`, `TRANSFER_SERVER`, `TRANSFER_SERVER_SEP0024`, `KYC_SERVER`, `WEB_AUTH_ENDPOINT`, `WEB_AUTH_FOR_CONTRACTS_ENDPOINT`, `DIRECT_PAYMENT_SERVER`, `ANCHOR_QUOTE_SERVER` are HTTPS URLs | error |
+| Keys and accounts | `SIGNING_KEY` is an ed25519 `G...` key; `ACCOUNTS` and `PRINCIPALS` entries are `G...`/`M...` IDs with valid checksums | error |
+| `[DOCUMENTATION]` | Field types, `ORG_URL`/`ORG_LOGO`/`ORG_SUPPORT_URL` URLs, `ORG_OFFICIAL_EMAIL`/`ORG_SUPPORT_EMAIL` emails | error |
+| `[[CURRENCIES]]` | `code` present and 1-12 alphanumeric characters, `issuer` or `contract` present, issuer is a Stellar account ID, boolean and numeric fields typed | error |
+| `[[CURRENCIES]]` | `status` in `live`/`dead`/`test`, `anchor_asset_type` in `fiat`/`crypto`/`stock`/`bond`/`commodity` | warning |
+| `[[VALIDATORS]]` | Entries are tables, `PUBLIC_KEY` is a Stellar account ID, `ALIAS` is a string | error |
+| Top-level keys | Uppercase SEP-1 field names | warning |
+
+Not covered: signature or domain-ownership proofs, reachability of endpoints, TOML fields outside the tables above, and anything in SEP-10 or later.
 
 ## Development
 
@@ -53,10 +131,10 @@ npm ci
 npm test
 npm run typecheck
 npm run build
+npm run check   # test, typecheck, and build in one command
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow. The documentation site source is in [`docs/`](docs/).
-The docs workflow publishes it to GitHub Pages on pushes to `main`; enable **Settings → Pages → Build and deployment → GitHub Actions** in the repository if Pages is not already configured.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow. The documentation site source is in [`docs/`](docs/). It is a single static page deployed to Vercel at the URL above; `.github/workflows/docs.yml` can publish the same directory to GitHub Pages as an alternative if Pages is enabled in the repository.
 
 ## License
 

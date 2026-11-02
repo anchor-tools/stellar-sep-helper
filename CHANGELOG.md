@@ -1,8 +1,32 @@
 # Changelog
 
-Notable project changes are recorded here.
+Notable project changes are recorded here. This project follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.2.0 - Unreleased
+
+### Added
+
+- Structured validation issues with severity, stable code, and field path, alongside the existing `errors` list.
+- `warnings` for suspicious but parseable content: non-semver `VERSION`, unknown currency `status` or `anchor_asset_type`, and lowercase top-level field names.
+- StrKey checksum validation for `SIGNING_KEY`, `ACCOUNTS`, `PRINCIPALS`, currency `issuer`, and validator `PUBLIC_KEY`, including muxed `M...` accounts.
+- Validation for `[[CURRENCIES]]` (`code`, `issuer`/`contract`, `is_asset_anchored`, `display_decimals`, string fields) and `[[VALIDATORS]]`.
+- `[DOCUMENTATION]` URL and email checks.
+- `getStellarTomlUrl` export for building the well-known URL.
+- `formatReport` export for the human-readable report format.
+- CLI (`stellar-sep-helper`) with `--json`, `--strict`, `--timeout`, `--file`, and documented exit codes.
+- `fetchStellarToml` `timeoutMs` option that aborts slow requests.
+- `npm run check` script that runs tests, typecheck, and build.
+- Roadmap, issue templates, and pull request template.
+- Tests for URL building, StrKey checks, currency and account validation, report formatting, and CLI argument parsing.
+
+### Changed
+
+- `validateStellarToml` now also returns `warnings` and `issues`; `valid` still means "no errors".
+- `npm run prepublishOnly` runs the full check suite instead of only building.
+- Package metadata now declares `repository`, `homepage`, `bugs`, `bin`, and `exports`.
+- README and documentation site describe the expanded API and the CLI.
+
+## 0.1.0 - Unreleased
 
 ### Added
 

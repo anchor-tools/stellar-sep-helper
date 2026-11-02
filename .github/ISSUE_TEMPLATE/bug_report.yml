@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in the library or CLI behaves incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please include enough detail to reproduce it without follow-up questions.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: The actual behavior, including the full error message or CLI output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: A minimal `stellar.toml` fixture, code snippet, or CLI command. Redact anything private.
+      placeholder: |
+        npx stellar-sep-helper example.com --json
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Project version
+      description: From `package.json`, or the commit you installed from.
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: v22.11.0
+    validations:
+      required: true
+  - type: textarea
+    id: sep
+    attributes:
+      label: Relevant SEP section
+      description: Link or quote the SEP-1 section if the report is about protocol behavior.
+    validations:
+      required: false

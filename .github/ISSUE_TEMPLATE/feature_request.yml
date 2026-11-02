@@ -1,0 +1,48 @@
+name: Feature request
+description: Propose a validation rule, API addition, or SEP integration
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Large changes should be discussed before implementation. Please describe the outcome you need rather than only the implementation you have in mind.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - SEP-1 validation rule
+        - CLI behavior
+        - Library API
+        - Documentation
+        - New SEP support (see ROADMAP.md)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you unable to do today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the API, rule, or output you expect, including an example if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: How would this be verified?
+      description: Tests, fixtures, or a real `stellar.toml` that should pass or fail.
+    validations:
+      required: false
+  - type: input
+    id: sep
+    attributes:
+      label: Relevant SEP section
+      description: Required for protocol changes.
+    validations:
+      required: false

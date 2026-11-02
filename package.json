@@ -1,30 +1,54 @@
 {
   "name": "stellar-sep-helper",
-  "version": "0.1.0",
-  "description": "TypeScript utilities for discovering, parsing, and validating Stellar SEP-1 stellar.toml files.",
+  "version": "0.2.0",
+  "description": "TypeScript utilities and a CLI for discovering, parsing, and validating Stellar SEP-1 stellar.toml files.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "stellar-sep-helper": "./dist/cli.js"
+  },
   "files": [
     "dist",
     "README.md",
     "LICENSE"
   ],
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anchor-tools/stellar-sep-helper.git"
+  },
+  "homepage": "https://stellar-sep-helper-docs-sigma.vercel.app/",
+  "bugs": {
+    "url": "https://github.com/anchor-tools/stellar-sep-helper/issues"
+  },
   "scripts": {
     "test": "jest --runInBand",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc",
     "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
+    "check": "npm test && npm run typecheck && npm run build",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run check"
   },
   "keywords": [
     "stellar",
     "sep-1",
     "stellar-toml",
     "toml",
+    "anchor",
+    "validator",
+    "cli",
+    "strkey",
     "stellar-development"
   ],
+  "author": "anchor-tools",
   "license": "MIT",
   "type": "commonjs",
   "engines": {
