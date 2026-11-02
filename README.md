@@ -141,7 +141,7 @@ npm run build
 npm run check   # test, typecheck, and build in one command
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow. The documentation site source is in [`docs/`](docs/). It is a single static page deployed to Vercel at the URL above; `.github/workflows/docs.yml` can publish the same directory to GitHub Pages as an alternative if Pages is enabled in the repository.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow. The documentation site source is in [`docs/`](docs/): a single static page deployed to Vercel at the URL above. Deploy the directory with any static host if the Vercel project is replaced.
 
 ## License
 

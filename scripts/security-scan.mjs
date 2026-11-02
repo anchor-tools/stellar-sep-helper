@@ -230,6 +230,10 @@ function scanDiff(base) {
     if (SKIP_PATHS.test(file)) continue;
     findings.push(...scanPath(file));
 
+    // The scanner contains its own attack fixtures; path rules already require
+    // a maintainer to review changes to it.
+    if (file === SCANNER_PATH) continue;
+
     for (const entry of lines) {
       for (const rule of CONTENT_RULES) {
         if (rule.appliesTo && !rule.appliesTo(file)) continue;
@@ -449,6 +453,12 @@ function main(argv) {
   if (!base || base.startsWith('-')) {
     console.error('--base requires a commit SHA');
     return 2;
+  }
+
+  // A brand-new branch reports an all-zero "before" SHA; scan the tree instead.
+  if (/^0+$/.test(base)) {
+    const { findings, fileCount } = scanTree();
+    return report(findings, fileCount, 'working tree (initial push)', allowReview);
   }
 
   try {

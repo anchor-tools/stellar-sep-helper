@@ -34,7 +34,9 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             node scripts/security-scan.mjs --base "${{ github.event.pull_request.base.sha }}"
           else
-            node scripts/security-scan.mjs --base "${{ github.event.before }}"
+            # Pushes to main come from maintainers, so review-only findings are
+            # informational there; they gate pull requests.
+            node scripts/security-scan.mjs --base "${{ github.event.before }}" --allow-review
           fi
 
       - name: Audit dependencies against advisories
