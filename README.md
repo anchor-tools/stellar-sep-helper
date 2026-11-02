@@ -124,6 +124,13 @@ Types: `Sep1Record`, `Sep1Toml`, `Sep1Documentation`, `Sep1Currency`, `Sep1Issue
 
 Not covered: signature or domain-ownership proofs, reachability of endpoints, TOML fields outside the tables above, and anything in SEP-10 or later.
 
+## Security
+
+- CodeQL code scanning, dependency review, Dependabot, and a contributor code scan run in CI. See [SECURITY.md](SECURITY.md) for what each layer covers.
+- The contributor scan is a heuristic review aid for added lines (install hooks, piped downloads, encoded payloads, leaked keys, CI changes), not an antivirus. Review-only findings need a maintainer's `security-approved` label.
+- Run it locally with `npm run security:scan`.
+- Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/anchor-tools/stellar-sep-helper/security/advisories/new), not a public issue.
+
 ## Development
 
 ```sh

@@ -34,6 +34,8 @@
     "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "check": "npm test && npm run typecheck && npm run build",
+    "security:scan": "node scripts/security-scan.mjs --all",
+    "security:selftest": "node scripts/security-scan.mjs --self-test",
     "prepare": "npm run build",
     "prepublishOnly": "npm run check"
   },

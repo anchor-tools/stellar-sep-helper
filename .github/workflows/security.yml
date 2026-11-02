@@ -1,0 +1,41 @@
+name: Security scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Contributor code scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test the scanner's own rules
+        run: node scripts/security-scan.mjs --self-test
+
+      - name: Scan added lines for malicious patterns
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/security-scan.mjs --base "${{ github.event.pull_request.base.sha }}"
+          else
+            node scripts/security-scan.mjs --base "${{ github.event.before }}"
+          fi
+
+      - name: Audit dependencies against advisories
+        run: npm audit --package-lock-only --audit-level=high

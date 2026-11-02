@@ -17,6 +17,9 @@ Notable project changes are recorded here. This project follows [Semantic Versio
 - `fetchStellarToml` `timeoutMs` option that aborts slow requests.
 - `npm run check` script that runs tests, typecheck, and build.
 - Roadmap, issue templates, and pull request template.
+- Security CI: CodeQL code scanning, dependency review, Dependabot updates, and a contributor code scan for malicious patterns in added lines.
+- `scripts/security-scan.mjs` with a `security-approved` label path for review-only findings such as CI changes.
+- Expanded security policy covering automated protections, limits, and recommended repository settings.
 - Tests for URL building, StrKey checks, currency and account validation, report formatting, and CLI argument parsing.
 
 ### Changed
