@@ -9,7 +9,10 @@ Notable project changes are recorded here. This project follows [Semantic Versio
 - Structured validation issues with severity, stable code, and field path, alongside the existing `errors` list.
 - `warnings` for suspicious but parseable content: non-semver `VERSION`, unknown currency `status` or `anchor_asset_type`, and lowercase top-level field names.
 - StrKey checksum validation for `SIGNING_KEY`, `ACCOUNTS`, `PRINCIPALS`, currency `issuer`, and validator `PUBLIC_KEY`, including muxed `M...` accounts.
-- Validation for `[[CURRENCIES]]` (`code`, `issuer`/`contract`, `is_asset_anchored`, `display_decimals`, string fields) and `[[VALIDATORS]]`.
+- Full SEP-1 field-table validation for `[[CURRENCIES]]`: entry tables, `code`/`code_template` bounds, the Stellar-asset (`issuer`) versus token-contract (`contract`) identity rules, `display_decimals` range, `name` length, boolean/integer/string/string-list/URL field types, and linked `toml` entries. Unknown currency fields are allowed and ignored.
+- Currency warnings for more than one issuance policy, and for collateral message or signature lists that do not match `collateral_addresses`.
+- `status` choices now include `private`; `anchor_asset_type` choices now include `nft`, `realestate`, and `other`.
+- Validation for `[[VALIDATORS]]`.
 - `[DOCUMENTATION]` URL and email checks.
 - `getStellarTomlUrl` export for building the well-known URL.
 - `formatReport` export for the human-readable report format.

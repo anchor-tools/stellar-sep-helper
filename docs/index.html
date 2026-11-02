@@ -214,7 +214,7 @@ npx stellar-sep-helper --file ./stellar.toml --strict</code></pre>
   Result:  invalid - 1 error, 1 warning
 
   ERROR    KYC_SERVER            KYC_SERVER must be a valid HTTPS URL
-  WARNING  CURRENCIES[0].status  CURRENCIES[0].status should be one of live, dead, test</code></pre>
+  WARNING  CURRENCIES[0].status  CURRENCIES[0].status should be one of live, dead, test, private</code></pre>
       </div>
       <div class="note"><code class="inline-code">--strict</code> treats warnings as failures, <code class="inline-code">--timeout</code> sets the request deadline, and <code class="inline-code">--json</code> prints one machine-readable document per target with structured issues.</div>
     </section>
@@ -265,15 +265,15 @@ npx stellar-sep-helper --file ./stellar.toml --strict</code></pre>
         <article class="card">
           <div class="num">ERRORS</div>
           <h3>Documentation and currencies</h3>
-          <p>Field types in <code class="inline-code">[DOCUMENTATION]</code>, URL and email shapes, and <code class="inline-code">[[CURRENCIES]]</code> code, issuer or contract, and typed fields.</p>
+          <p>Field types in <code class="inline-code">[DOCUMENTATION]</code>, URL and email shapes, and <code class="inline-code">[[CURRENCIES]]</code> bounds on <code class="inline-code">code</code>, <code class="inline-code">code_template</code>, and <code class="inline-code">name</code>, <code class="inline-code">display_decimals</code> range, and the Stellar-asset versus token-contract identity split.</p>
         </article>
         <article class="card">
           <div class="num">WARNINGS</div>
           <h3>Spec-shaped smells</h3>
-          <p>Non-semver <code class="inline-code">VERSION</code>, unknown <code class="inline-code">status</code> or <code class="inline-code">anchor_asset_type</code> values, and non-uppercase top-level field names.</p>
+          <p>Non-semver <code class="inline-code">VERSION</code>, unknown <code class="inline-code">status</code> or <code class="inline-code">anchor_asset_type</code> values, conflicting issuance policies, mismatched collateral lists, and non-uppercase top-level field names.</p>
         </article>
       </div>
-      <div class="note">Not covered: domain-ownership proofs, endpoint reachability, fields outside the tables above, and anything in SEP-10 or later. A valid result is a baseline check, not an audit.</div>
+      <div class="note">Not covered: domain-ownership proofs, endpoint reachability, the StrKey checksum of a currency <code class="inline-code">contract</code> ID, whether an issuer actually issued a listed <code class="inline-code">code</code>, linked <code class="inline-code">toml</code> file contents, signature or reserve attestation contents, fields outside the tables above, and anything in SEP-10 or later. A valid result is a baseline check, not an audit.</div>
     </section>
 
     <section id="project">
