@@ -9,6 +9,8 @@ import { isEd25519PublicKey, isMuxedAccountId, isStellarAccountId } from '../str
 import { UsageError, parseCliArgs } from '../cli';
 
 const VALID_ACCOUNT = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+// Structural only: the validator checks the `C...` shape, not the StrKey checksum.
+const VALID_CONTRACT = `C${'A'.repeat(55)}`;
 
 function mockFetcher(response: Response) {
   return jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>().mockResolvedValue(response);
@@ -165,35 +167,7 @@ describe('SEP-1 Stellar TOML helpers', () => {
       expect(result.errors).not.toContain('ACCOUNTS[0] must be a Stellar account ID');
     });
 
-    it('checks currency entries', () => {
-      const result = validateStellarToml({
-        VERSION: '2.7.0',
-        CURRENCIES: [
-          { code: 'USD', issuer: VALID_ACCOUNT, status: 'live', anchor_asset_type: 'fiat' },
-          { code: 'TOO-LONG-CODE', issuer: 'nope', status: 'paused' },
-          { issuer: VALID_ACCOUNT }
-        ]
-      });
-
-      expect(result.valid).toBe(false);
-      expect(result.errors).toContain('CURRENCIES[1].code must be 1-12 alphanumeric characters');
-      expect(result.errors).toContain('CURRENCIES[1].issuer must be a Stellar account ID');
-      expect(result.errors).toContain('CURRENCIES[2].code is required and must be a string');
-      expect(result.warnings).toContain(
-        'CURRENCIES[1].status should be one of live, dead, test'
-      );
-    });
-
-    it('requires a currency issuer or contract', () => {
-      const result = validateStellarToml({
-        VERSION: '2.7.0',
-        CURRENCIES: [{ code: 'USD' }]
-      });
-
-      expect(result.errors).toContain('CURRENCIES[0] must set issuer or contract');
-    });
-
-    it('accepts a fully specified currency', () => {
+    it('accepts a fully specified Stellar-asset currency', () => {
       const result = validateStellarToml({
         VERSION: '2.7.0',
         SIGNING_KEY: VALID_ACCOUNT,
@@ -203,14 +177,272 @@ describe('SEP-1 Stellar TOML helpers', () => {
             code: 'USDC',
             issuer: VALID_ACCOUNT,
             status: 'live',
+            display_decimals: 2,
+            name: 'USD Coin',
+            desc: 'USD Coin on Stellar',
+            conditions: 'Redeemable one for one for USD',
+            image: 'https://anchor.example/usdc.png',
             is_asset_anchored: true,
             anchor_asset_type: 'fiat',
-            desc: 'USD Coin'
+            anchor_asset: 'USD',
+            attestation_of_reserve: 'https://anchor.example/reserve.pdf',
+            redemption_instructions: 'Deposit with SEP-6',
+            collateral_addresses: ['0xabc'],
+            collateral_address_messages: ['reserved to back USDC'],
+            collateral_address_signatures: ['c2lnbmF0dXJl'],
+            regulated: false,
+            approval_server: 'https://anchor.example/approve',
+            approval_criteria: 'KYC required',
+            fixed_number: 10000
           }
         ]
       });
 
-      expect(result).toMatchObject({ valid: true, errors: [] });
+      expect(result.issues).toEqual([]);
+      expect(result.valid).toBe(true);
+    });
+
+    it('accepts a contract-token currency', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'AQUA', contract: VALID_CONTRACT, display_decimals: 7, status: 'private' }
+        ]
+      });
+
+      expect(result.issues).toEqual([]);
+      expect(result.valid).toBe(true);
+    });
+
+    it('accepts a currency that only links to its own TOML file', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [{ toml: 'https://anchor.example/.well-known/AQUA.toml' }]
+      });
+
+      expect(result.issues).toEqual([]);
+    });
+
+    it('flags a linked currency that sets other fields', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [{ toml: 'https://anchor.example/AQUA.toml', code: 'AQUA' }]
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toContain(
+        'CURRENCIES[0].toml should be the only field of a currency that links to a separate TOML file'
+      );
+    });
+
+    it('requires CURRENCIES to be an array of TOML tables', () => {
+      const notAnArray = validateStellarToml({ VERSION: '2.7.0', CURRENCIES: 'USD' });
+      expect(notAnArray.errors).toContain('CURRENCIES must be an array of tables');
+
+      const notATable = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [{ code: 'USD', issuer: VALID_ACCOUNT }, 'USD']
+      });
+      expect(notATable.errors).toContain('CURRENCIES[1] must be a TOML table');
+    });
+
+    it('requires a currency identity field', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [{ code: 'USD' }]
+      });
+
+      expect(result.errors).toContain(
+        'CURRENCIES[0] must set issuer for a Stellar asset or contract for a token contract'
+      );
+    });
+
+    it('rejects a currency that sets both issuer and contract', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [{ code: 'USD', issuer: VALID_ACCOUNT, contract: VALID_CONTRACT }]
+      });
+
+      expect(result.errors).toContain('CURRENCIES[0] must set either issuer or contract, not both');
+    });
+
+    it('rejects malformed issuer and contract identifiers', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'USD', issuer: 'GNOTAREALACCOUNT' },
+          { code: 'AQUA', contract: 'not-a-contract' },
+          { code: 'AQUA', contract: VALID_ACCOUNT }
+        ]
+      });
+
+      expect(result.errors).toContain('CURRENCIES[0].issuer must be a Stellar public key (G...)');
+      expect(result.errors).toContain('CURRENCIES[1].contract must be a Stellar contract ID (C...)');
+      expect(result.errors).toContain('CURRENCIES[2].contract must be a Stellar contract ID (C...)');
+    });
+
+    it('checks code and code_template bounds', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'TOOLONGCODE12', issuer: VALID_ACCOUNT },
+          { issuer: VALID_ACCOUNT },
+          { code_template: 'CORN?????????', issuer: VALID_ACCOUNT },
+          { code_template: 'CORN????????', issuer: VALID_ACCOUNT }
+        ]
+      });
+
+      expect(result.errors).toContain('CURRENCIES[0].code must be at most 12 characters');
+      expect(result.errors).toContain('CURRENCIES[1].code is required and must be 1-12 characters');
+      expect(result.errors).toContain('CURRENCIES[2].code_template must be at most 12 characters');
+      expect(result.errors.some((error) => error.startsWith('CURRENCIES[3]'))).toBe(false);
+    });
+
+    it('rejects non-alphanumeric asset codes but only warns for contract tokens', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'US-D', issuer: VALID_ACCOUNT },
+          { code: 'US-D', contract: VALID_CONTRACT }
+        ]
+      });
+
+      expect(result.errors).toContain('CURRENCIES[0].code should contain only letters and digits');
+      expect(result.warnings).toContain('CURRENCIES[1].code should contain only letters and digits');
+    });
+
+    it('checks display_decimals range and name length', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'USD', issuer: VALID_ACCOUNT, display_decimals: 8 },
+          { code: 'USD', issuer: VALID_ACCOUNT, display_decimals: -1 },
+          { code: 'USD', issuer: VALID_ACCOUNT, display_decimals: 2.5 },
+          { code: 'USD', issuer: VALID_ACCOUNT, display_decimals: 7 },
+          { code: 'USD', issuer: VALID_ACCOUNT, name: 'x'.repeat(21) }
+        ]
+      });
+
+      expect(result.errors).toContain('CURRENCIES[0].display_decimals must be an integer from 0 to 7');
+      expect(result.errors).toContain('CURRENCIES[1].display_decimals must be an integer from 0 to 7');
+      expect(result.errors).toContain('CURRENCIES[2].display_decimals must be an integer from 0 to 7');
+      expect(result.errors).toContain('CURRENCIES[4].name must be at most 20 characters');
+      expect(result.errors.some((error) => error.startsWith('CURRENCIES[3]'))).toBe(false);
+    });
+
+    it('checks boolean, integer, and URL currency fields', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          {
+            code: 'USD',
+            issuer: VALID_ACCOUNT,
+            is_asset_anchored: 'true',
+            regulated: 1,
+            is_unlimited: 'yes',
+            fixed_number: 'many',
+            max_number: -5,
+            image: 'not-a-url',
+            approval_server: 'ftp://anchor.example/approve',
+            attestation_of_reserve: 42,
+            toml: 'not-a-url'
+          }
+        ]
+      });
+
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          'CURRENCIES[0].is_asset_anchored must be a boolean',
+          'CURRENCIES[0].regulated must be a boolean',
+          'CURRENCIES[0].is_unlimited must be a boolean',
+          'CURRENCIES[0].fixed_number must be a non-negative integer',
+          'CURRENCIES[0].max_number must be a non-negative integer',
+          'CURRENCIES[0].image must be a valid http(s) URL',
+          'CURRENCIES[0].approval_server must be a valid http(s) URL',
+          'CURRENCIES[0].attestation_of_reserve must be a valid http(s) URL',
+          'CURRENCIES[0].toml must be a valid http(s) URL'
+        ])
+      );
+    });
+
+    it('checks collateral address lists', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          {
+            code: 'BTC',
+            issuer: VALID_ACCOUNT,
+            collateral_addresses: ['addr'],
+            collateral_address_signatures: []
+          },
+          { code: 'BTC', issuer: VALID_ACCOUNT, collateral_addresses: 'addr' },
+          { code: 'BTC', issuer: VALID_ACCOUNT, collateral_addresses: ['addr', 42] }
+        ]
+      });
+
+      expect(result.errors).toContain('CURRENCIES[1].collateral_addresses must be an array of strings');
+      expect(result.errors).toContain('CURRENCIES[2].collateral_addresses[1] must be a string');
+      expect(result.warnings).toContain(
+        'CURRENCIES[0].collateral_address_signatures should contain one entry per collateral address'
+      );
+    });
+
+    it('warns when a currency sets more than one issuance policy', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'GOAT', issuer: VALID_ACCOUNT, fixed_number: 10000, is_unlimited: true }
+        ]
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toContain(
+        'CURRENCIES[0] should set at most one of fixed_number, max_number, is_unlimited'
+      );
+    });
+
+    it('accepts every documented status and anchor_asset_type value', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          {
+            code: 'HOUSE',
+            issuer: VALID_ACCOUNT,
+            status: 'private',
+            anchor_asset_type: 'realestate'
+          },
+          { code: 'ART', issuer: VALID_ACCOUNT, anchor_asset_type: 'nft' },
+          { code: 'MISC', issuer: VALID_ACCOUNT, anchor_asset_type: 'other' }
+        ]
+      });
+
+      expect(result.issues).toEqual([]);
+    });
+
+    it('warns about unknown enum values without rejecting the entry', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'USD', issuer: VALID_ACCOUNT, status: 'paused', anchor_asset_type: 'fiat2' }
+        ]
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toContain('CURRENCIES[0].status should be one of live, dead, test, private');
+      expect(result.warnings).toContain(
+        'CURRENCIES[0].anchor_asset_type should be one of fiat, crypto, nft, stock, bond, commodity, realestate, other'
+      );
+    });
+
+    it('ignores unknown currency fields', () => {
+      const result = validateStellarToml({
+        VERSION: '2.7.0',
+        CURRENCIES: [
+          { code: 'USD', issuer: VALID_ACCOUNT, colour: 'blue', metadata: { sector: 'tech' } }
+        ]
+      });
+
+      expect(result.issues).toEqual([]);
     });
   });
 });

@@ -47,7 +47,7 @@ example.com (https://example.com/.well-known/stellar.toml)
   Result:  invalid - 1 error, 1 warning
 
   ERROR    KYC_SERVER        KYC_SERVER must be a valid HTTPS URL
-  WARNING  CURRENCIES[0].status  CURRENCIES[0].status should be one of live, dead, test
+  WARNING  CURRENCIES[0].status  CURRENCIES[0].status should be one of live, dead, test, private
 ```
 
 Options:
@@ -117,12 +117,12 @@ Types: `Sep1Record`, `Sep1Toml`, `Sep1Documentation`, `Sep1Currency`, `Sep1Issue
 | Endpoint fields | `FEDERATION_SERVER`, `AUTH_SERVER`, `TRANSFER_SERVER`, `TRANSFER_SERVER_SEP0024`, `KYC_SERVER`, `WEB_AUTH_ENDPOINT`, `WEB_AUTH_FOR_CONTRACTS_ENDPOINT`, `DIRECT_PAYMENT_SERVER`, `ANCHOR_QUOTE_SERVER` are HTTPS URLs | error |
 | Keys and accounts | `SIGNING_KEY` is an ed25519 `G...` key; `ACCOUNTS` and `PRINCIPALS` entries are `G...`/`M...` IDs with valid checksums | error |
 | `[DOCUMENTATION]` | Field types, `ORG_URL`/`ORG_LOGO`/`ORG_SUPPORT_URL` URLs, `ORG_OFFICIAL_EMAIL`/`ORG_SUPPORT_EMAIL` emails | error |
-| `[[CURRENCIES]]` | `code` present and 1-12 alphanumeric characters, `issuer` or `contract` present, issuer is a Stellar account ID, boolean and numeric fields typed | error |
-| `[[CURRENCIES]]` | `status` in `live`/`dead`/`test`, `anchor_asset_type` in `fiat`/`crypto`/`stock`/`bond`/`commodity` | warning |
+| `[[CURRENCIES]]` | Entries are tables; `code` or `code_template` present and at most 12 characters; exactly one of `issuer` (`G...`) or `contract` (`C...`) for Stellar assets versus token contracts; `display_decimals` is an integer from 0 to 7; `name` at most 20 characters; boolean, integer, string, string-list, and URL field types | error |
+| `[[CURRENCIES]]` | `status` in `live`/`dead`/`test`/`private`, `anchor_asset_type` in `fiat`/`crypto`/`nft`/`stock`/`bond`/`commodity`/`realestate`/`other`, at most one issuance policy in `fixed_number`/`max_number`/`is_unlimited`, one collateral message and signature per address, `toml` as a linked entry's only field | warning |
 | `[[VALIDATORS]]` | Entries are tables, `PUBLIC_KEY` is a Stellar account ID, `ALIAS` is a string | error |
 | Top-level keys | Uppercase SEP-1 field names | warning |
 
-Not covered: signature or domain-ownership proofs, reachability of endpoints, TOML fields outside the tables above, and anything in SEP-10 or later.
+Not covered: signature or domain-ownership proofs, reachability of endpoints, the StrKey checksum of a currency `contract` ID, whether a currency `issuer` actually issued the listed `code`, the content of a linked `toml` file or of `collateral_address_signatures`/`attestation_of_reserve`, TOML fields outside the tables above, and anything in SEP-10 or later. Unknown currency fields are allowed and ignored.
 
 ## Security
 
