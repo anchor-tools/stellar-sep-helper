@@ -87,7 +87,7 @@ const result = validateStellarToml(stellarToml);
 
 if (!result.valid) {
   for (const issue of result.issues) {
-    console.error(`${issue.path}: ${issue.message}`);
+    console.error(`[${issue.code}] ${issue.path}: ${issue.message}`);
   }
 }
 ```
@@ -96,18 +96,37 @@ if (!result.valid) {
 
 Use `parseStellarToml(source)` to parse TOML text without a network request, `getStellarTomlUrl(domain)` to build the well-known URL, and the `isEd25519PublicKey` / `isMuxedAccountId` / `isStellarAccountId` helpers for StrKey checks.
 
+## Diagnostics
+
+`validateStellarToml` returns a typed `issues` array alongside the original `errors` and `warnings` string lists:
+
+```ts
+for (const issue of result.issues) {
+  console.log(issue.severity, issue.code, issue.path, issue.message);
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `severity` | `'error'` makes the document invalid; `'warning'` is advisory. |
+| `code` | Stable `Sep1IssueCode` identifier for the rule that fired, for example `currency.issuer`. |
+| `path` | Deterministic location in the document, with array indices for nested entries, for example `CURRENCIES[0].code` or `CURRENCIES[1].collateral_addresses[0]`. The document root is `''`. |
+| `message` | Human-readable text, identical to the matching entry in `errors` or `warnings`. |
+
+`valid`, `errors`, and `warnings` keep their existing behavior; `issues` is additive. Codes and paths are intended for programmatic use — grouping findings, choosing localization keys, and attaching a finding to an input field — while messages are for display and may be reworded. New codes can appear as validation grows, but existing codes keep their meaning. Do not parse `message` to recover a code or path.
+
 ## API
 
 | Export | Description |
 | --- | --- |
 | `fetchStellarToml(options)` | Fetch `/.well-known/stellar.toml` and return a parsed `Sep1Record`. Rejects on invalid input, HTTP errors, oversize content, timeouts, or malformed TOML. |
 | `parseStellarToml(source)` | Parse TOML text without network access. Throws on malformed input or when the 100 KiB limit is exceeded. |
-| `validateStellarToml(record)` | Return `{ valid, errors, warnings, issues }`. `errors` block validity; `warnings` flag suspicious but parseable content. |
+| `validateStellarToml(record)` | Return `{ valid, errors, warnings, issues }`. `errors` block validity; `warnings` flag suspicious but parseable content; `issues` add a stable code and field path to each finding. |
 | `getStellarTomlUrl(domain)` | Build `https://<domain>/.well-known/stellar.toml`, rejecting paths, credentials, query strings, and non-HTTPS schemes. |
 | `formatReport(report)` | Render a validation result as the CLI's human-readable report. |
 | `isEd25519PublicKey`, `isMuxedAccountId`, `isStellarAccountId` | StrKey checks used by the validator and available for your own input validation. |
 
-Types: `Sep1Record`, `Sep1Toml`, `Sep1Documentation`, `Sep1Currency`, `Sep1Issue`, `Sep1ValidationResult`, `Sep1Options`, `StellarTomlReport`.
+Types: `Sep1Record`, `Sep1Toml`, `Sep1Documentation`, `Sep1Currency`, `Sep1Issue`, `Sep1IssueCode`, `Sep1ValidationResult`, `Sep1Options`, `StellarTomlReport`.
 
 ## Validation coverage
 

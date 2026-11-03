@@ -236,7 +236,7 @@ npx stellar-sep-helper --file ./stellar.toml --strict</code></pre>
         </article>
         <article class="card">
           <h3><code>validateStellarToml(record)</code></h3>
-          <p>Returns <code>{ valid, errors, warnings, issues }</code> after checking endpoints, keys, documentation, currencies, and validators. Each issue carries a severity, stable code, and field path.</p>
+          <p>Returns <code>{ valid, errors, warnings, issues }</code> after checking endpoints, keys, documentation, currencies, and validators. Each issue carries a severity, a type-safe <code>Sep1IssueCode</code>, and a deterministic field path.</p>
         </article>
         <article class="card">
           <h3><code>getStellarTomlUrl(domain)</code></h3>
@@ -247,6 +247,15 @@ npx stellar-sep-helper --file ./stellar.toml --strict</code></pre>
           <p>Verifies StrKey checksums for <code>G...</code> ed25519 keys and <code>M...</code> muxed accounts, with <code>isEd25519PublicKey</code> and <code>isMuxedAccountId</code> variants.</p>
         </article>
       </div>
+      <div class="codebox" style="margin-top:12px">
+        <div class="codehead">typescript · diagnostics</div>
+        <pre><code>for (const issue of result.issues) {
+  // code and path are the stable programmatic API
+  console.log(issue.severity, issue.code, issue.path);
+  // "error" "currency.issuer" "CURRENCIES[0].issuer"
+}</code></pre>
+      </div>
+      <div class="note"><code class="inline-code">issues</code> is additive: <code class="inline-code">valid</code>, <code class="inline-code">errors</code>, and <code class="inline-code">warnings</code> keep working, and each issue's message matches the corresponding string in those lists. Use the stable <code class="inline-code">code</code> and deterministic <code class="inline-code">path</code> (<code class="inline-code">CURRENCIES[0].code</code>, or <code class="inline-code">''</code> for the document root) for grouping, localization keys, and field-level display; messages are for humans and may be reworded.</div>
       <div class="note"><strong>Important:</strong> A valid result only means the checked fields passed these baseline checks. It does not prove all SEP-1 requirements are met, verify Stellar account keys, or guarantee that a remote service is safe to use.</div>
     </section>
 

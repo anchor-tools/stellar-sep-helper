@@ -2,7 +2,8 @@ import {
   fetchStellarToml,
   getStellarTomlUrl,
   parseStellarToml,
-  validateStellarToml
+  validateStellarToml,
+  type Sep1Record
 } from '../sep1';
 import { formatReport } from '../report';
 import { isEd25519PublicKey, isMuxedAccountId, isStellarAccountId } from '../strkey';
@@ -492,6 +493,135 @@ describe('SEP-1 Stellar TOML helpers', () => {
       });
 
       expect(result.issues).toEqual([]);
+    });
+
+    describe('diagnostics', () => {
+      it('returns no issues for a valid record', () => {
+        const result = validateStellarToml({
+          VERSION: '2.7.0',
+          DOCUMENTATION: { ORG_NAME: 'Example', ORG_URL: 'https://example.com' },
+          CURRENCIES: [{ code: 'USDC', issuer: VALID_ACCOUNT }]
+        });
+
+        expect(result).toEqual({ valid: true, errors: [], warnings: [], issues: [] });
+      });
+
+      it('reports a root diagnostic with an empty path', () => {
+        const result = validateStellarToml(null as unknown as Sep1Record);
+
+        expect(result.issues).toEqual([
+          {
+            severity: 'error',
+            code: 'record.type',
+            path: '',
+            message: 'Stellar TOML must contain a TOML table at the root'
+          }
+        ]);
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual(['Stellar TOML must contain a TOML table at the root']);
+      });
+
+      it('reports documentation diagnostics with dotted paths', () => {
+        const result = validateStellarToml({
+          VERSION: '2.7.0',
+          DOCUMENTATION: {
+            ORG_NAME: 42,
+            ORG_URL: 'not-a-url',
+            ORG_SUPPORT_EMAIL: 'not-an-email'
+          }
+        });
+
+        expect(result.issues).toEqual(
+          expect.arrayContaining([
+            {
+              severity: 'error',
+              code: 'documentation.field',
+              path: 'DOCUMENTATION.ORG_NAME',
+              message: 'DOCUMENTATION.ORG_NAME must be a string'
+            },
+            {
+              severity: 'error',
+              code: 'documentation.url',
+              path: 'DOCUMENTATION.ORG_URL',
+              message: 'DOCUMENTATION.ORG_URL must be a valid http(s) URL'
+            },
+            {
+              severity: 'error',
+              code: 'documentation.email',
+              path: 'DOCUMENTATION.ORG_SUPPORT_EMAIL',
+              message: 'DOCUMENTATION.ORG_SUPPORT_EMAIL must be a valid email address'
+            }
+          ])
+        );
+      });
+
+      it('uses array indices in nested currency paths', () => {
+        const result = validateStellarToml({
+          VERSION: '2.7.0',
+          CURRENCIES: [
+            { code: 'USD' },
+            {
+              code: 'USDC',
+              issuer: 'GNOTAREALACCOUNT',
+              collateral_addresses: ['addr', 42]
+            }
+          ]
+        });
+
+        expect(result.issues).toEqual(
+          expect.arrayContaining([
+            {
+              severity: 'error',
+              code: 'currency.identity.missing',
+              path: 'CURRENCIES[0]',
+              message:
+                'CURRENCIES[0] must set issuer for a Stellar asset or contract for a token contract'
+            },
+            {
+              severity: 'error',
+              code: 'currency.issuer',
+              path: 'CURRENCIES[1].issuer',
+              message: 'CURRENCIES[1].issuer must be a Stellar public key (G...)'
+            },
+            {
+              severity: 'error',
+              code: 'currency.list_entry',
+              path: 'CURRENCIES[1].collateral_addresses[1]',
+              message: 'CURRENCIES[1].collateral_addresses[1] must be a string'
+            }
+          ])
+        );
+      });
+
+      it('gives warnings a code and path without invalidating the record', () => {
+        const result = validateStellarToml({
+          VERSION: '2.7.0',
+          CURRENCIES: [{ code: 'USD', issuer: VALID_ACCOUNT, status: 'paused' }]
+        });
+
+        expect(result.valid).toBe(true);
+        expect(result.issues).toEqual([
+          {
+            severity: 'warning',
+            code: 'currency.status',
+            path: 'CURRENCIES[0].status',
+            message: 'CURRENCIES[0].status should be one of live, dead, test, private'
+          }
+        ]);
+      });
+
+      it('keeps errors and warnings consistent with the structured issues', () => {
+        const result = validateStellarToml({ VERSION: '2.7', timestamp: 'now' });
+
+        expect(result.errors).toEqual(
+          result.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.message)
+        );
+        expect(result.warnings).toEqual(
+          result.issues
+            .filter((issue) => issue.severity === 'warning')
+            .map((issue) => issue.message)
+        );
+      });
     });
   });
 });

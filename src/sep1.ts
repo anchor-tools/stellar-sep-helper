@@ -72,12 +72,73 @@ export interface Sep1Options {
   timeoutMs?: number;
 }
 
+/**
+ * Stable identifier for a SEP-1 validation finding.
+ *
+ * Codes are intended for programmatic use: consumers can group findings,
+ * select localized messages, or map a finding to an input field. Existing
+ * codes keep their meaning; new codes may be added as validation grows.
+ */
+export type Sep1IssueCode =
+  | 'record.type'
+  | 'version.missing'
+  | 'version.format'
+  | 'key.case'
+  | 'endpoint.https'
+  | 'network_passphrase.invalid'
+  | 'signing_key.invalid'
+  | 'account_list.type'
+  | 'account_list.entry'
+  | 'documentation.type'
+  | 'documentation.field'
+  | 'documentation.url'
+  | 'documentation.email'
+  | 'currencies.type'
+  | 'currency.type'
+  | 'currency.code.missing'
+  | 'currency.code.type'
+  | 'currency.code.empty'
+  | 'currency.code.length'
+  | 'currency.code.format'
+  | 'currency.code_template.type'
+  | 'currency.code_template.length'
+  | 'currency.code_template.format'
+  | 'currency.identity.mixed'
+  | 'currency.identity.missing'
+  | 'currency.issuer'
+  | 'currency.contract'
+  | 'currency.status.type'
+  | 'currency.status'
+  | 'currency.anchor_asset_type.type'
+  | 'currency.anchor_asset_type'
+  | 'currency.name.type'
+  | 'currency.name.length'
+  | 'currency.display_decimals'
+  | 'currency.field'
+  | 'currency.url'
+  | 'currency.boolean'
+  | 'currency.integer'
+  | 'currency.list'
+  | 'currency.list_entry'
+  | 'currency.issuance'
+  | 'currency.collateral'
+  | 'currency.toml'
+  | 'currency.toml.only_field'
+  | 'validators.type'
+  | 'validator.type'
+  | 'validator.public_key'
+  | 'validator.alias';
+
 export interface Sep1Issue {
   severity: 'error' | 'warning';
-  /** Stable machine-readable identifier, for example `currencies.issuer`. */
-  code: string;
-  /** Field path inside the document, for example `CURRENCIES[0].issuer`. */
+  /** Stable machine-readable identifier, safe to switch on. */
+  code: Sep1IssueCode;
+  /**
+   * Deterministic field path inside the document, for example
+   * `CURRENCIES[0].issuer`, or `''` for the document root.
+   */
   path: string;
+  /** Human-readable description, mirrored in `errors` or `warnings`. */
   message: string;
 }
 
@@ -163,7 +224,12 @@ const CODE_PATTERN = /^[A-Za-z0-9]+$/;
 const CODE_TEMPLATE_PATTERN = /^[A-Za-z0-9?]+$/;
 const CONTRACT_ID_PATTERN = /^C[A-Z2-7]{55}$/;
 
-type Reporter = (severity: Sep1Issue['severity'], code: string, path: string, message: string) => void;
+type Reporter = (
+  severity: Sep1Issue['severity'],
+  code: Sep1IssueCode,
+  path: string,
+  message: string
+) => void;
 
 /**
  * Retrieve and parse a domain's SEP-1 stellar.toml file.
