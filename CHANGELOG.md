@@ -6,7 +6,7 @@ Notable project changes are recorded here. This project follows [Semantic Versio
 
 ### Added
 
-- Structured validation issues with severity, stable code, and field path, alongside the existing `errors` list.
+- Structured validation `issues` with severity, a type-safe `Sep1IssueCode`, and a deterministic field path with array indices for nested entries, alongside the existing `errors` list. `issues` is additive: `valid`, `errors`, and `warnings` keep their behavior and messages.
 - `warnings` for suspicious but parseable content: non-semver `VERSION`, unknown currency `status` or `anchor_asset_type`, and lowercase top-level field names.
 - StrKey checksum validation for `SIGNING_KEY`, `ACCOUNTS`, `PRINCIPALS`, currency `issuer`, and validator `PUBLIC_KEY`, including muxed `M...` accounts.
 - Full SEP-1 field-table validation for `[[CURRENCIES]]`: entry tables, `code`/`code_template` bounds, the Stellar-asset (`issuer`) versus token-contract (`contract`) identity rules, `display_decimals` range, `name` length, boolean/integer/string/string-list/URL field types, and linked `toml` entries. Unknown currency fields are allowed and ignored.
